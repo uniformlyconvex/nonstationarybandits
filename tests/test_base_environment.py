@@ -1,9 +1,9 @@
 import pytest
 
-from nsb.base import NSBEnvironment
+from nsb.environment import MABEnvironment
 
-# Create a dummy class that subclasses NSBEnvironment
-class DummyEnvironment(NSBEnvironment):
+
+class DummyEnvironment(MABEnvironment):
     def __init__(self, public: int, private: int):
         self.public = public
         self._private = private

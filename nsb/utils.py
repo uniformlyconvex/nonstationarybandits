@@ -1,6 +1,9 @@
 """Miscellaneous utility functions"""
-
+import hashlib
+import types
 import typing as t
+import warnings
+from dataclasses import dataclass
 
 import numpy as np
 import torch
@@ -52,3 +55,11 @@ def flatten_values(
             flattened_values.append(val)
     
     return repeated_timesteps, flattened_values
+
+
+def disable_warnings(disable: bool=True):
+    r"""Disable all warnings"""
+    if disable:
+        warnings.filterwarnings("ignore")
+    else:
+        warnings.filterwarnings("default")

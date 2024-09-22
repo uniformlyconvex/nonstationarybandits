@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 import torch.distributions as dist
 from torch.distributions.kl import kl_divergence
 #
-import nsb.distributions as nsbdist
+import nsb.distributions.nonstationary as nsbdist
 
 def _distributions_equal(dist1: dist.Distribution, dist2: dist.Distribution) -> bool:
     if not type(dist1) == type(dist2):
