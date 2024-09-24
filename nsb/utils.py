@@ -104,8 +104,6 @@ def _enforce_typehints_class(cls: C) -> C:
             annotation_type = types[name]
             if not isinstance(value, annotation_type):
                 raise TypeError(f"Expected {annotation_type} for {name}, got {type(value)}")
-        print("Passed typehints check")
-        print(f"Initialising with {args=}, {kwargs=}")
         original_init(self, *args, **kwargs)
     
     cls.__init__ = new_init
@@ -132,4 +130,4 @@ def repeatable_hash(obj: t.Any) -> str:
     This is useful for hashing objects that are not hashable, such as
     functions or classes.
     """
-    return hashlib.md5(dill.dumps(obj)).hexdigest()
+    return int(hashlib.md5(dill.dumps(obj)).hexdigest(), 16)

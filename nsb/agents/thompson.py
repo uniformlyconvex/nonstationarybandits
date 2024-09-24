@@ -6,10 +6,13 @@ import torch.distributions as dist
 from nsb.agents.base import MABAgent, MABAgentParams, MABObservation
 from nsb.distributions.conjugacy import PriorPosterior, Likelihood
 
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=True)
 class TSParams(MABAgentParams):
     # For now we only accept likelihoods with conjugate priors
     likelihoods: tuple[Likelihood]
+
+    def __eq__(self, other) -> bool:
+        return hash(self) == hash(other)
 
 
 class TSAgent(MABAgent[TSParams]):

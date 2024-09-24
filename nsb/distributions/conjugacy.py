@@ -17,24 +17,13 @@ class _DistributionLikeMixin:
         distribution: t.Type[dist.Distribution],
         **params: dict[str, float | PriorPosterior | tuple[t.Callable, PriorPosterior]]
     ) -> None:
+        
         for key, value in params.items():
-            # Create the private attribute and public property
+            # Create the attribute with the key and value
             setattr(self, f'_{key}', value)
-            setattr(self, key, property(lambda self, key=key: self.__getattribute__(f'_{key}')))
-            setattr(
-                self,
-                '_initial_params',
-                getattr(self, '_initial_params', {}) | {key: value}
-            )
-
         self._distribution = distribution
-        self._distribution_params = list(params.keys())
-
-        # The object now has _{key} attributes, where
-        # is used to store the current value. The public property
-        # is used to access the current value.
-        # It also has _distribution_params which gives a list of names
-        # of the parameters of the distribution.
+        self._distribution_params = tuple(params.keys())
+        self._initial_param_values = tuple(params.values())
 
     def __str__(self) -> str:
         return f"{self.distribution_type.__name__}({self._distribution_params})"
@@ -46,7 +35,8 @@ class _DistributionLikeMixin:
     def __hash__(self):
         params = [type(self)] + [
             (key, value)
-            for key, value in self._initial_params.items()
+            for key, value in zip(self._distribution_params, self._initial_param_values)
+            if isinstance(value, float)
         ]
         return utils.repeatable_hash(tuple(params))
     
@@ -105,9 +95,7 @@ class NormalPrior(PriorPosterior):
 # @utils.enforce_typehints
 class NormalKnownScaleLikelihood(Likelihood):
     def __init__(self, scale: float, loc: NormalPrior) -> None:
-        print("About to call super")
         super().__init__(distribution=dist.Normal, scale=scale, loc=loc)
-        print("Called super")
     
     def update_prior(self, data: list[float]) -> None:
         prior = self._loc
@@ -117,10 +105,8 @@ class NormalKnownScaleLikelihood(Likelihood):
         n = len(data)
         sum_xi = sum(data)
 
-        print(f"Updating prior: {mu_0=}, {sigma_0_sq=}, {sigma_sq=}, {n=}, {sum_xi=}")
         self._loc._loc = ( 1 / (1 / sigma_0_sq + n / sigma_sq) ) * (mu_0 / sigma_0_sq + sum_xi / sigma_sq)
         self._loc._scale = max(1 / (1 / sigma_0_sq + n / sigma_sq), self._loc._MIN_SCALE)
-        print(f"Updated prior: mu={self._loc._loc}, scale={self._loc._scale}")
 
 
 class InverseGammaPrior(PriorPosterior):
@@ -128,7 +114,7 @@ class InverseGammaPrior(PriorPosterior):
         super().__init__(distribution=dist.InverseGamma, alpha=alpha, beta=beta)
 
 
-@utils.enforce_typehints
+# @utils.enforce_typehints
 class NormalKnownLocLikelihood(Likelihood):
     def __init__(self, loc: float, variance: InverseGammaPrior) -> None:
         super().__init__(distribution=dist.Normal, loc=loc, scale=(math.sqrt, variance))
@@ -147,7 +133,7 @@ class NormalInverseGammaPrior(PriorPosterior):
         super().__init__(distribution=NormalInverseGamma, mu=mu, lambda_=lambda_, alpha=alpha, beta=beta)
 
 
-@utils.enforce_typehints
+# @utils.enforce_typehints
 class NormalLikelihood(Likelihood):
     def __init__(self, loc_variance: NormalInverseGammaPrior) -> None:
         super().__init__(

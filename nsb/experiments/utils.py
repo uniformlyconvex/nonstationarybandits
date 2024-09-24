@@ -13,8 +13,6 @@ def repeat_runs(
     """
     Run the function `func` `no_runs` times in parallel using `no_cores` cores.
     """
-    return func(0)
-
     with mp.Pool(no_processes) as pool:
         no_processes = pool._processes
         print(f"Running {no_runs} runs in parallel using {no_processes} processes")

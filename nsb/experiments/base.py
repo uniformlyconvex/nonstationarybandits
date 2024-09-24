@@ -80,7 +80,6 @@ class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
         
         results = {agent: [] for agent in agents}
         for t in range(self.NO_TIMESTEPS):
-            print("Timestep", t)
             for agent in agents:
                 arm = agent.pick_action()
                 result = environment.take_action(arm)
