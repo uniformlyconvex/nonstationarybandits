@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import abc
 import typing as t
-from dataclasses import dataclass
 
-import nsb.utils as utils
 from nsb.environment import MABObservation, MABEnvironment
 
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import abc
+import builtins
 import copy
 import hashlib
 import inspect
-import pickle
 import typing as t
 from pathlib import Path
+
+import dill
 
 import nsb.utils as utils
 from nsb.agents.base import MABAgent, MABAgentParams
@@ -59,7 +61,12 @@ class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
         # This is disgusting and I'm ashamed
         # We have to use hashlib because the hash() function is not stable;
         # it changes between runs (by design)
-        code = inspect.getsource(self.__class__)
+        classes = inspect.getmro(self.__class__)
+        code = ''.join(
+            inspect.getsource(cls)
+            for cls in classes
+            if cls not in vars(builtins).values()
+        )
         return int(hashlib.sha256(code.encode()).hexdigest(), 16)
 
     def single_run(self, seed: int) -> dict[MABAgent, list[MABResult]]:
@@ -73,6 +80,7 @@ class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
         
         results = {agent: [] for agent in agents}
         for t in range(self.NO_TIMESTEPS):
+            print("Timestep", t)
             for agent in agents:
                 arm = agent.pick_action()
                 result = environment.take_action(arm)
@@ -108,9 +116,9 @@ class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
 
         try:
             with open(filename, "rb") as f:
-                return pickle.load(f)
+                return dill.load(f)
         except FileNotFoundError:
             results = self.run()
             with open(filename, "wb") as f:
-                pickle.dump(results, f)
+                dill.dump(results, f)
             return results

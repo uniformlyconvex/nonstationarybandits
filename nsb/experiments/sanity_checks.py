@@ -1,12 +1,15 @@
 
 import torch.distributions as dist
 
+import nsb.distributions.conjugacy as con
 from nsb.agents.eps_greedy import EpsilonGreedyAgent, EpsilonGreedyParams
+from nsb.agents.thompson import TSAgent, TSParams
 from nsb.agents.ucb import UCBAgent, UCBParams
 from nsb.distributions.stationary import Delta
-from nsb.distributions.nonstationary import Constants, SinePlusGaussianNoise
+from nsb.distributions.nonstationary import SinePlusGaussianNoise
 from nsb.environment import MABEnvironment
 from nsb.experiments.base import Experiment
+
 
 class StationaryConstantArms(Experiment):
     """
@@ -32,7 +35,21 @@ class StationaryConstantArms(Experiment):
         ucb_params = UCBParams(error_probability=0.01)
         ucb_agent = UCBAgent(ucb_params, environment)
 
-        super().__init__(environment, [eg_agent, ucb_agent])
+        # Postulate that the arms are Gaussian with unknown mean and known variance,
+        # in which case the prior is normal
+        ts_params = TSParams(
+            likelihoods=tuple(
+                con.NormalKnownScaleLikelihood(
+                    scale=0.1,
+                    loc=con.NormalPrior(loc=val, scale=1.0)
+                )
+                for val in StationaryConstantArms.ARM_VALUES
+            )
+        )
+        ts_agent = TSAgent(ts_params, environment)
+
+        super().__init__(environment, [eg_agent, ucb_agent, ts_agent])
+
 
     @property
     def filename(self) -> str:
