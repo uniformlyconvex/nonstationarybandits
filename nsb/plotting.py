@@ -8,9 +8,11 @@ import plotly.graph_objects as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly.subplots import make_subplots
 
-from nsb.trackers.base import MABTracker
+from nsb.agents.thompson import TSAgent
 from nsb.distributions.nonstationary import NSDist
 from nsb.experiments.base import Experiment
+from nsb.trackers.base import MABTracker
+
 
 def _rgb_to_rgba(rgb: str, opacity: float) -> str:
     """Dumb hacky way to add opacity to the color"""
@@ -106,6 +108,62 @@ def get_regret_figure(trackers: t.Iterable[MABTracker]) -> go.Figure:
     return figure
 
 
+def get_ts_beliefs_figure(exp: t.Type[Experiment]) -> go.Figure | None:
+    for agent in exp.agents:
+        if isinstance(agent, TSAgent):
+            break
+    else:
+        return None
+    
+    agent: TSAgent
+    beliefs = agent._posteriors
+    duration = len(beliefs)
+
+    def get_violins(idx: int) -> list[go.Violin]:
+        curr_posteriors = beliefs[idx]
+        samples = [post.sample((1000,)) for post in curr_posteriors]
+        violins = [
+            go.Violin(
+                x=i,
+                y=samps,
+                name=f'Arm {i}'
+            )
+            for i, samps in enumerate(samples)
+        ]
+        return violins
+    
+    buttons=[dict(
+        label="Play",
+        method="animate",
+        args=[None, dict(frame=dict(duration=duration, redraw=True), fromcurrent=True)]
+    )]
+    layout=go.Layout(
+        title="Beliefs over time",
+        updatemenus=[dict(type="buttons", showactive=False, buttons=buttons)]
+    )
+    fig = go.Figure(
+        data=get_violins(0),
+        layout=layout
+    )
+    fig.frames = [go.Frame(data=get_violins(i)) for i in range(duration)]
+
+    sliders = [{
+        "currentvalue": {"prefix": "Frame: "},
+        "steps": [{
+            "args": [
+                [f.name],
+                {
+                    "frame": {"duration": 50, "redraw": True},
+                    "mode": "immediate"
+                }
+            ],
+            "label": str(f.name),
+            "method": "animate"
+        }
+        for f in fig.frames
+    ]}]
+
+    fig.show()
 
 def plot_experiment(exp: t.Type[Experiment]) -> None:
     if isinstance(exp, type):
@@ -144,4 +202,17 @@ def plot_experiment(exp: t.Type[Experiment]) -> None:
             margin=dict(t=_estimate_title_size(exp.__doc__, font_size=FONT_SIZE)),
         )
 
+    # Make the legend tiny
+    fig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1,
+        font=dict(size=5)
+    ))
+
     fig.show()
+
+    beliefs_fig = get_ts_beliefs_figure(exp)
+    beliefs_fig.show()

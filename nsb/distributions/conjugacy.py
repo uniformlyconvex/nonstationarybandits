@@ -65,17 +65,31 @@ class Likelihood(_DistributionLikeMixin, abc.ABC):
                 value = func(prior.sample_distribution())
             likelihood_params[key] = value
         return likelihood_params
+    
+    @property
+    def prior(self) -> PriorPosterior:
+        # For now there's only one param with a prior on it
+        for key in self._distribution_params:
+            value = getattr(self, f'_{key}')
+            if isinstance(value, PriorPosterior):
+                return value
+        raise ValueError(f"Couldn't find the prior for {self}!")
 
 
 class PriorPosterior(_DistributionLikeMixin):
     """Base class for prior-posterior distributions"""
-    def sample_distribution(self) -> float:
-        """Sample the distribution for params of the likelihood"""
+    @property
+    def distribution(self) -> dist.Distribution:
         dist_params: dict[str, float] = {}
         for key in self._distribution_params:
             value = getattr(self, f'_{key}')
             dist_params[key] = value
-        return self._distribution(**dist_params).sample()
+        dist = self._distribution(**dist_params)
+        return dist
+
+    def sample_distribution(self) -> float:
+        """Sample the distribution for params of the likelihood"""
+        return self.distribution.sample()
     
     def __hash__(self) -> int:
         params = [type(self)] + [
@@ -147,7 +161,7 @@ class NormalLikelihood(Likelihood):
         
     def update_prior(self, data: list[float]) -> None:
         mu_0 = self.loc_variance.mu
-        nu = self.loc_varaince.lambda_
+        nu = self.loc_variance.lambda_
         alpha = self.loc_variance.alpha
         beta = self.loc_variance.beta
 

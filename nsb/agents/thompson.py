@@ -1,9 +1,11 @@
+import copy
 from dataclasses import dataclass
 
 import numpy as np
 import torch.distributions as dist
 
 from nsb.agents.base import MABAgent, MABAgentParams, MABObservation
+from nsb.environment import MABEnvironment
 from nsb.distributions.conjugacy import PriorPosterior, Likelihood
 
 @dataclass(frozen=True)
@@ -16,6 +18,10 @@ class TSParams(MABAgentParams):
 
 
 class TSAgent(MABAgent[TSParams]):
+    def __init__(self, params: TSParams, environment: MABEnvironment) -> None:
+        super().__init__(params, environment)
+        self._posteriors: list[list[dist.Distribution]]
+
     def __str__(self) -> str:
         priors_text = str([likelihood.distribution_type for likelihood in self._params.likelihoods])
         return f"TSAgent(priors={priors_text})"
@@ -23,6 +29,12 @@ class TSAgent(MABAgent[TSParams]):
     def observe(self, observation: MABObservation) -> None:
         super().observe(observation)
         self._params.likelihoods[observation.arm_pulled].update_prior([observation.reward])
+        posteriors = copy.deepcopy([
+            likelihood.prior.distribution
+            for likelihood in self._params.likelihoods
+        ])
+        self._posteriors.append(posteriors)
+
 
     def pick_action(self) -> int:
         param_samples = [
@@ -33,6 +45,5 @@ class TSAgent(MABAgent[TSParams]):
             likelihood.distribution(**params)
             for likelihood, params in zip(self._params.likelihoods, param_samples)
         ]
-        print(f"{beliefs=}")
         means = [belief.mean.item() for belief in beliefs]
         return np.argmax(means)
