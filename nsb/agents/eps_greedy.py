@@ -18,6 +18,9 @@ class EpsilonGreedyAgent(
 ):
     def __str__(self) -> str:
         return f'ε-greedy(ε={"<callable" if callable(self._params.epsilon) else self._params.epsilon})'
+    
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def pick_action(self) -> int:
         epsilon = self._params.epsilon

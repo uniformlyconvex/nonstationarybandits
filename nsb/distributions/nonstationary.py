@@ -19,6 +19,7 @@ import plotly.graph_objects as go
 import torch.distributions as dist
 
 import nsb.utils as utils
+from nsb.distributions.stationary import Delta
 from nsb.type_hints import DistFn, TimeVaryingParam
 
 

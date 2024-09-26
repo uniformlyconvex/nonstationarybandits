@@ -50,6 +50,13 @@ class MABAgent(abc.ABC, t.Generic[Params]):
         debugging.
         """
 
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the agent. This is used for logging and
+        debugging.
+        """
+        return self.__str__()
+
     @abc.abstractmethod
     def pick_action(self) -> int:
         """Choose an action based on internal state"""

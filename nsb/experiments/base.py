@@ -28,7 +28,7 @@ Env = t.TypeVar("Env", bound=MABEnvironment)
 Agent = t.TypeVar("Agent", bound=MABAgent)
 Res = t.TypeVar("Res", bound=MABResult)
 class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
-    NO_RUNS = 100
+    NO_RUNS = 50
     NO_TIMESTEPS = 1000
 
     def __init__(

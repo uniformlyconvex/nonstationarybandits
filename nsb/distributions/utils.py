@@ -16,11 +16,14 @@ class FunctionComposition:
     """
     Makes a callable which is the composition of functions.
     Again used to avoid making lambdas.
+    Note that the functions are applied in reverse order, i.e. the last function
+    in the list is applied first. This is for consistency with the way
+    we write function composition, e.g. f(g(x)).
     """
     def __init__(self, callables: list[t.Callable]) -> None:
         self.callables = callables
 
     def __call__(self, x: t.Any) -> t.Any:
-        for func in self.callables:
+        for func in reversed(self.callables):
             x = func(x)
         return x

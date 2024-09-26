@@ -30,3 +30,26 @@ class UCBAgent(MABAgent[UCBParams]):
             key=lambda arm: self.ucb(arm)
         )
         return arm
+    
+
+@dataclass(frozen=True, eq=True)
+class UCBLogarithmicParams(MABAgentParams):
+    alpha: float
+
+
+class UCBLogarithmicAgent(UCBAgent):
+    _params: UCBLogarithmicParams
+    
+    def __str__(self) -> str:
+        return f"UCBLogarithmic(alpha={self._params.alpha})"
+    
+    def ucb(self, arm: int, timestep: int | None=None) -> float:
+        timestep = timestep or self._t
+        if self._counts[arm] == 0:
+            return np.inf
+        return (
+            self._rewards[arm] / self._counts[arm]
+            + np.sqrt(
+                self._params.alpha * np.log(timestep) / (2 * self._counts[arm])
+            )
+        )

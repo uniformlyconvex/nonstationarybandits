@@ -138,8 +138,8 @@ class NormalKnownLocLikelihood(Likelihood):
         n = len(data)
         sum_xi_minus_mu_sq = sum((xi - mu)**2 for xi in data)
 
-        self.variance._alpha = self.variance._alpha + n / 2
-        self.variance._beta = self.variance._beta + sum_xi_minus_mu_sq / 2
+        self._variance._alpha = self._variance._alpha + n / 2
+        self._variance._beta = self._variance._beta + sum_xi_minus_mu_sq / 2
 
 
 class NormalInverseGammaPrior(PriorPosterior):
@@ -149,21 +149,35 @@ class NormalInverseGammaPrior(PriorPosterior):
 
 # @utils.enforce_typehints
 class NormalLikelihood(Likelihood):
+    # Who knows, this one is a real mess
     def __init__(self, loc_variance: NormalInverseGammaPrior) -> None:
+        self._loc_variance = loc_variance
         super().__init__(
             distribution=dist.Normal, 
             loc=(IthElement(0), loc_variance),
             scale=(
-                FunctionComposition(math.sqrt, IthElement(1)),
+                FunctionComposition((math.sqrt, IthElement(1))),
                 loc_variance
             )
         )
-        
+        self._distribution_params = self._distribution_params + ('loc_variance',)  
+    
+    @property
+    def prior(self) -> NormalInverseGammaPrior:
+        return self._loc_variance
+    
+    def sample_prior_distribution(self) -> dict[str, float]:
+        loc_variance = self._loc_variance.sample_distribution()
+        return {
+            'loc': loc_variance[0].item(),
+            'scale': loc_variance[1].item()
+        }
+
     def update_prior(self, data: list[float]) -> None:
-        mu_0 = self.loc_variance.mu
-        nu = self.loc_variance.lambda_
-        alpha = self.loc_variance.alpha
-        beta = self.loc_variance.beta
+        mu_0 = self._loc_variance._mu
+        nu = self._loc_variance._lambda_
+        alpha = self._loc_variance._alpha
+        beta = self._loc_variance._beta
 
         n = len(data)
         xbar = sum(data) / n
@@ -175,7 +189,7 @@ class NormalLikelihood(Likelihood):
             beta + 0.5 * sum((xi - xbar)**2 for xi in data) +
             (n * nu * (xbar - mu_0)**2) / (2 * (nu + n))
         )
-        self.loc_variance.mu = new_mu
-        self.loc_variance.lambda_ = new_lambda
-        self.loc_variance.alpha = new_alpha
-        self.loc_variance.beta = new_beta
+        self._loc_variance._mu = new_mu
+        self._loc_variance._lambda_ = new_lambda
+        self._loc_variance._alpha = new_alpha
+        self._loc_variance._beta = new_beta

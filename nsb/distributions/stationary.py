@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import torch
 import torch.distributions as dist
 from torch.distributions import constraints
@@ -66,9 +67,12 @@ class NormalInverseGamma(dist.Distribution):
         var_sigma2 = self.beta**2 / ((self.alpha - 1)**2 * (self.alpha - 2))
         return tuple(x.item() for x in (var_x, var_sigma2))
     
-    def sample(self) -> tuple[float, float]:
-        sigma2: torch.Tensor = dist.InverseGamma(self.alpha, self.beta).sample()
-        variance = sigma2 / self.lambda_
-        x_dist = dist.Normal(loc=self.mu, scale=variance.sqrt())
-        x = x_dist.sample()
-        return x.item(), sigma2.item()
+    def sample(self, sample_shape=torch.Size()) -> tuple[np.ndarray, np.ndarray]:
+        no_samples = sample_shape[0] if sample_shape else 1
+        sigma2 = dist.InverseGamma(self.alpha, self.beta).sample((no_samples,))
+        variances = sigma2 / self.lambda_
+        scales = variances.sqrt()
+
+        x_dists = dist.Normal(self.mu.float(), scales)
+        xs = x_dists.sample()
+        return xs.numpy(), sigma2.numpy()
