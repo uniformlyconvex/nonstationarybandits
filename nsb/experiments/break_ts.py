@@ -11,7 +11,7 @@ from nsb.experiments.base import Experiment
 class SwappingConstantArms(Experiment):
     """
     Two arms with constant means that swap every n timesteps.
-    - TS: likelihoods are Gaussian with unknown mean and variance, so priors are NormalInverseGamma. We set the mean of the prior to be the mean of the arms (i.e. the arms swap between values y1 and y2, the priors have mean (y1 + y2) / 2).
+    - TS: likelihoods are Gaussian with unknown mean and known variance, so priors are NormalInverseGamma. We set the mean of the prior to be the mean of the arms (i.e. the arms swap between values y1 and y2, the priors have mean (y1 + y2) / 2).
     """
     ARM_VALUES = [10, 20]
     SWAP_EVERY = 100

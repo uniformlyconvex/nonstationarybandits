@@ -131,7 +131,6 @@ def get_ts_beliefs_figure(exp: t.Type[Experiment]) -> list[go.Figure]:
                 data=all_violins[i],
                 name=f"Timestep {i}",
                 layout=go.Layout(
-                    title=f"Beliefs over time for {agent_name}: Timestep {i}",
                     yaxis=dict(range=[ymin, ymax])
                 )
             )

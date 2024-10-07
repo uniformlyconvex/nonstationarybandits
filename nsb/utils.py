@@ -131,3 +131,14 @@ def repeatable_hash(obj: t.Any) -> str:
     functions or classes.
     """
     return int(hashlib.md5(dill.dumps(obj)).hexdigest(), 16)
+
+
+def in_ipynb() -> bool:
+    """Check if we are running in a Jupyter notebook"""
+    try:
+        from IPython import get_ipython
+        return get_ipython() is not None
+    except ImportError:
+        return False
+    except NameError:
+        return False

@@ -1,6 +1,9 @@
+import inspect
 import pathos.multiprocessing as mp
 import sys
+import tokenize
 import typing as t
+from io import StringIO
 
 import tqdm
 
@@ -43,3 +46,34 @@ def repeat_runs(
         agent: [result[agent] for result in results]
         for agent in agents
     }
+
+def get_class_code_without_comments_and_docstrings(cls):
+    # Get the source code of the class
+    source_code = inspect.getsource(cls)
+    
+    # Use StringIO to treat the source code as a file for the tokenizer
+    source_io = StringIO(source_code)
+    
+    # Tokenize the source code
+    result = []
+    prev_toktype = tokenize.INDENT
+    last_lineno = -1
+    last_col = 0
+    for tok in tokenize.generate_tokens(source_io.readline):
+        token_type, token_string, (start_line, start_col), _, _ = tok
+        
+        # Skip comments (tokenize.COMMENT) and docstrings (tokenize.STRING)
+        if token_type == tokenize.COMMENT or (token_type == tokenize.STRING and prev_toktype == tokenize.INDENT):
+            continue
+
+        # Add non-comment, non-docstring tokens to the result
+        if start_line > last_lineno:
+            result.append("\n" * (start_line - last_lineno))
+        elif start_col > last_col:
+            result.append(" " * (start_col - last_col))
+        
+        result.append(token_string)
+        prev_toktype = token_type
+        last_lineno, last_col = start_line, start_col
+    
+    return "".join(result)

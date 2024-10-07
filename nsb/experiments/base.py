@@ -13,7 +13,7 @@ import dill
 import nsb.utils as utils
 from nsb.agents.base import MABAgent, MABAgentParams
 from nsb.environment import MABEnvironment, MABResult
-from nsb.experiments.utils import repeat_runs
+from nsb.experiments.utils import repeat_runs, get_class_code_without_comments_and_docstrings
 
 
 class Experiments:
@@ -63,7 +63,7 @@ class Experiment(abc.ABC, t.Generic[Env, Agent, Res]):
         # it changes between runs (by design)
         classes = inspect.getmro(self.__class__)
         code = ''.join(
-            inspect.getsource(cls)
+            get_class_code_without_comments_and_docstrings(cls)   #Not affected by docstrings
             for cls in classes
             if cls not in vars(builtins).values()
         )

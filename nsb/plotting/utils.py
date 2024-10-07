@@ -4,6 +4,8 @@ import typing as t
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
+from nsb.utils import in_ipynb
+
 def rgb_to_rgba(rgb: str, opacity: float) -> str:
     """Dumb hacky way to add opacity to the color"""
     # Regex needs to match rgb(a, b, c)
@@ -46,17 +48,36 @@ def add_slider(fig: go.Figure) -> go.Figure:
     fig.update_layout(sliders=sliders, overwrite=True)
     return fig
 
+def delatex(text: str) -> str:
+    new_text = ""
+    for line in text.split("\n"):
+        if r"\begin{itemize}" in line.strip():
+            continue
+        if r"\end{itemize}" in  line.strip():
+            continue
+        if r"\item" in line.strip():
+            line = line.replace(r"\item", "\t- ")
+        if '$' in line:
+            line = line.replace("$", "")
+    new_text += line + "\n"
+    return new_text
+
+
 def add_explanation(fig: go.Figure, explanation: str) -> go.Figure:
     """Add an explanation to a figure"""
-    top_padding = (fig.layout.margin.t or 0.0) + estimate_title_size(explanation, font_size=12)
-    fig.update_layout(
-        title={
-            'text': to_multiline_string(explanation),
-            'font': {'size': 12},
-        },
-        margin=dict(t=top_padding),
-        overwrite=True
-    )
+    if in_ipynb():
+        print"I am in a notebook")
+        print(delatex(explanation))
+    else:
+        top_padding = (fig.layout.margin.t or 0.0) + estimate_title_size(explanation, font_size=12)
+        fig.update_layout(
+            title={
+                'text': delatex(to_multiline_string(explanation)),
+                'font': {'size': 12},
+            },
+            margin=dict(t=top_padding),
+            overwrite=True
+        )
     return fig
 
 def get_figure_bounds(fig: go.Figure, axis: str) -> tuple[float, float]:
