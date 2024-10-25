@@ -1,1 +1,2 @@
-# nonstationarybandits
+# Nonstationary bandit experiments
+
