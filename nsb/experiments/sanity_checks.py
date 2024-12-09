@@ -1,14 +1,19 @@
-
 import torch.distributions as dist
 
 import nsb.distributions.conjugacy as con
 from nsb.agents.eps_greedy import EpsilonGreedyAgent, EpsilonGreedyParams
 from nsb.agents.thompson import TSAgent, TSParams, TSTopTwoAgent, TSTopTwoParams
-from nsb.agents.ucb import UCBAgent, UCBParams, UCBLogarithmicAgent, UCBLogarithmicParams
+from nsb.agents.ucb import (
+    UCBAgent,
+    UCBParams,
+    UCBLogarithmicAgent,
+    UCBLogarithmicParams,
+)
 from nsb.distributions.stationary import Delta
 from nsb.distributions.nonstationary import SinePlusGaussianNoise
 from nsb.environment import MABEnvironment
 from nsb.experiments.base import Experiment
+from nsb.experiments.utils import get_agents
 
 
 class StationaryConstantArms(Experiment):
@@ -36,15 +41,13 @@ class StationaryConstantArms(Experiment):
         \item The arm distributions for TSAgent and TSTopTwoAgent do indeed concentrate around the true means of the arms. The lower-valued arms take much longer to concentrate, as is expected since these arms are chosen with low probability (especially once the top-valued arms concentrate). TSTopTwoAgent shows faster concentration of the top three arms, as is to be expected given TSTopTwo picks the second-best arm more often.
     \end{itemize}
     """
+
     ARM_VALUES = [1, 2, 3, 4, 5]
 
     def __init__(self) -> None:
         # We make the arms be "NSDs" but they're actually just Delta distributions
         environment = MABEnvironment(
-            arms=[
-                Delta(loc=loc)
-                for loc in StationaryConstantArms.ARM_VALUES
-            ]
+            arms=[Delta(loc=loc) for loc in StationaryConstantArms.ARM_VALUES]
         )
 
         eg_params = EpsilonGreedyParams(epsilon=0.1)
@@ -60,8 +63,7 @@ class StationaryConstantArms(Experiment):
         # in which case the prior is normal
         likelihoods = tuple(
             con.NormalKnownScaleLikelihood(
-                scale=0.1,
-                loc=con.NormalPrior(loc=val, scale=1.0)
+                scale=0.1, loc=con.NormalPrior(loc=val, scale=1.0)
             )
             for val in StationaryConstantArms.ARM_VALUES
         )
@@ -69,18 +71,18 @@ class StationaryConstantArms(Experiment):
         ts_params = TSParams(likelihoods)
         ts_agent = TSAgent(ts_params, environment)
 
+        ts_clipping_params = TSParams(likelihoods, clipping_threshold=0.1)
+        ts_clipping_agent = TSAgent(ts_clipping_params, environment)
+
         ts_top_two_params = TSTopTwoParams(likelihoods, beta=0.9)
         ts_top_two_agent = TSTopTwoAgent(ts_top_two_params, environment)
 
-        agents = [eg_agent, ucb_agent, ts_agent, ucb_log_agent, ts_top_two_agent]
-
-        super().__init__(environment, agents)
-
+        super().__init__(environment, get_agents())
 
     @property
     def filename(self) -> str:
         return "sanity_checks/stationary_constant_arms"
-    
+
 
 class StationaryGaussianArmsGoodPriors(Experiment):
     r"""
@@ -107,6 +109,7 @@ class StationaryGaussianArmsGoodPriors(Experiment):
         \item The arm distributions for Thompson sampling do end up behaving like the true distributions of the arms. Again TSTopTwo makes the top two distributions concentrate faster.
     \end{itemize}
     """
+
     ARM_MEANS = [10, 20, 30, 40, 50]
     ARM_STDS = [1, 1, 1, 1, 1]
 
@@ -116,7 +119,7 @@ class StationaryGaussianArmsGoodPriors(Experiment):
                 dist.Normal(loc=mean, scale=std)
                 for mean, std in zip(
                     StationaryGaussianArmsGoodPriors.ARM_MEANS,
-                    StationaryGaussianArmsGoodPriors.ARM_STDS
+                    StationaryGaussianArmsGoodPriors.ARM_STDS,
                 )
             ]
         )
@@ -132,8 +135,7 @@ class StationaryGaussianArmsGoodPriors(Experiment):
 
         likelihoods = tuple(
             con.NormalKnownScaleLikelihood(
-                scale=1.0,
-                loc=con.NormalPrior(loc=mean, scale=0.1)
+                scale=1.0, loc=con.NormalPrior(loc=mean, scale=0.1)
             )
             for mean in StationaryGaussianArmsGoodPriors.ARM_MEANS
         )
@@ -144,15 +146,15 @@ class StationaryGaussianArmsGoodPriors(Experiment):
         ts_top_two_params = TSTopTwoParams(likelihoods, beta=0.9)
         ts_top_two_agent = TSTopTwoAgent(ts_top_two_params, environment)
 
-        agents = [eg_agent, ucb_agent, ts_agent, ucb_log_agent, ts_top_two_agent]
+        ts_clipping_params = TSParams(likelihoods, clipping_threshold=0.1)
+        ts_clipping_agent = TSAgent(ts_clipping_params, environment)
 
-        super().__init__(environment, agents)
-
+        super().__init__(environment, get_agents())
 
     @property
     def filename(self) -> str:
         return "sanity_checks/stationary_gaussian_arms_good_priors"
-    
+
 
 class StationaryGaussianArmsVaguePriors(Experiment):
     r"""
@@ -181,6 +183,7 @@ class StationaryGaussianArmsVaguePriors(Experiment):
         \item The arm distributions for Thompson sampling do end up behaving like the true distributions of the arms. Again TSTopTwo makes the top two distributions concentrate faster.
     \end{itemize}
     """
+
     ARM_MEANS = [10, 20, 30, 40, 50]
     ARM_STDS = [1, 1, 1, 1, 1]
 
@@ -190,7 +193,7 @@ class StationaryGaussianArmsVaguePriors(Experiment):
                 dist.Normal(loc=mean, scale=std)
                 for mean, std in zip(
                     StationaryGaussianArmsVaguePriors.ARM_MEANS,
-                    StationaryGaussianArmsVaguePriors.ARM_STDS
+                    StationaryGaussianArmsVaguePriors.ARM_STDS,
                 )
             ]
         )
@@ -211,11 +214,7 @@ class StationaryGaussianArmsVaguePriors(Experiment):
 
         likelihoods = tuple(
             con.NormalKnownScaleLikelihood(
-                scale=1.0,
-                loc=con.NormalPrior(
-                    loc=arm_mean,
-                    scale=1.0
-                )
+                scale=1.0, loc=con.NormalPrior(loc=arm_mean, scale=1.0)
             )
             for _ in self.ARM_MEANS
         )
@@ -223,18 +222,18 @@ class StationaryGaussianArmsVaguePriors(Experiment):
         ts_params = TSParams(likelihoods)
         ts_agent = TSAgent(ts_params, environment)
 
+        ts_clipping_params = TSParams(likelihoods, clipping_threshold=0.1)
+        ts_clipping_agent = TSAgent(ts_clipping_params, environment)
+
         ts_top_two_params = TSTopTwoParams(likelihoods, beta=0.9)
         ts_top_two_agent = TSTopTwoAgent(ts_top_two_params, environment)
 
-        agents = [eg_agent, ucb_agent, ts_agent, ucb_log_agent, ts_top_two_agent]
-
-        super().__init__(environment, agents)
-
+        super().__init__(environment, get_agents())
 
     @property
     def filename(self) -> str:
         return "sanity_checks/stationary_gaussian_arms_vague_priors"
-        
+
 
 class BestArmStaysSameBestArmMoves(Experiment):
     r"""
@@ -267,21 +266,18 @@ class BestArmStaysSameBestArmMoves(Experiment):
         \item
     \end{itemize}
     """
+
     @property
     def filename(self) -> str:
         return "sanity_checks/best_arm_stays_same_best_arm_moves"
-    
+
     def __init__(self) -> None:
         environment = MABEnvironment(
-            arms = [
+            arms=[
                 Delta(loc=10),
                 SinePlusGaussianNoise(
-                    mean=20,
-                    amplitude=5,
-                    frequency=100,
-                    delay=0,
-                    std=1.0
-                )
+                    mean=20, amplitude=5, frequency=100, delay=0, std=1.0
+                ),
             ]
         )
         eg_params = EpsilonGreedyParams(epsilon=0.1)
@@ -295,21 +291,20 @@ class BestArmStaysSameBestArmMoves(Experiment):
 
         likelihoods = (
             con.NormalKnownScaleLikelihood(
-                scale=1.0,
-                loc=con.NormalPrior(loc=10, scale=5.0)
+                scale=1.0, loc=con.NormalPrior(loc=10, scale=5.0)
             ),
             con.NormalKnownScaleLikelihood(
-                scale=1.0,
-                loc=con.NormalPrior(loc=20, scale=5.0)
-            )
+                scale=1.0, loc=con.NormalPrior(loc=20, scale=5.0)
+            ),
         )
 
         ts_params = TSParams(likelihoods)
         ts_agent = TSAgent(ts_params, environment)
 
+        ts_clipping_params = TSParams(likelihoods, clipping_threshold=0.1)
+        ts_clipping_agent = TSAgent(ts_clipping_params, environment)
+
         ts_top_two_params = TSTopTwoParams(likelihoods, beta=0.9)
         ts_top_two_agent = TSTopTwoAgent(ts_top_two_params, environment)
 
-        agents = [eg_agent, ucb_agent, ts_agent, ucb_log_agent, ts_top_two_agent]
-
-        super().__init__(environment, agents)
+        super().__init__(environment, get_agents())
